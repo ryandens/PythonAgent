@@ -1,7 +1,7 @@
 import time
 
 
-class ContrastMiddleware(object):
+class AgentMiddleware(object):
 
     def __init__(self, app):
         self.app = app
