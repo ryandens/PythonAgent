@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name='ryan-python-agent',
-    description='Ryan Python Agent',
+    name='python-agent',
+    description='Python Agent',
     version="0.0.0.1",
     test_suite="python_agent.tests",
     url='',

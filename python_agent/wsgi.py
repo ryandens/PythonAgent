@@ -5,6 +5,7 @@ class AgentMiddleware(object):
 
     def __init__(self, app):
         self.app = app
+        self.current_max_id = 0
 
     def __call__(self, environ, start_response):
         print('Request Method', environ.get('REQUEST_METHOD'))
@@ -21,14 +22,14 @@ class AgentMiddleware(object):
 
         try:
             response = self.app(environ, demo_start_response)
-            print("response", response)
-            print("response interception", response_interception)
 
             try:
                 for event in response:
                     yield event
             finally:
                 if hasattr(response, 'close'):
+                    response.agent_id = self.current_max_id
+                    self.current_max_id += 1
                     response.close()
 
             print("Start Time", "Difference")
@@ -36,3 +37,5 @@ class AgentMiddleware(object):
 
         except Exception as exception:
             raise exception
+
+
