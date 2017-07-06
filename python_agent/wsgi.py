@@ -1,6 +1,7 @@
 import time
 from guppy import hpy
 
+
 class AgentMiddleware(object):
     responses = []
     total_str_count = 0
@@ -82,7 +83,7 @@ class AgentMiddleware(object):
                       '<td>' + str(resp.time) + '</td>' + \
                       '<td>' + str(resp.heap_size) + '</td>' + \
                       '</tbody></tr>'
-        output += '</table'
+        output += '</table>'
 
         return output
 

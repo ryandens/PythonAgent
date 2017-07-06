@@ -9,5 +9,8 @@ setup(
     author='Ryan Dens',
     author_email='ryan.dens@jhu.edu',
     license='MIT',
-    packages=['python_agent']
+    packages=['python_agent'],
+    install_requires=[
+          'guppy',
+    ]
 )
