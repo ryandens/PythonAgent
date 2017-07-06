@@ -1,6 +1,5 @@
 import time
 from guppy import hpy
-from webob import Request, Response
 
 class AgentMiddleware(object):
     responses = []
@@ -13,8 +12,7 @@ class AgentMiddleware(object):
 
     def __call__(self, environ, start_response):
         response_interception = {}
-        request = Request(environ)
-
+        
         def demo_start_response(status, headers, exc_info=None):
             print(headers)
             response_interception.update(status=status, response_headers=headers, exc_info=exc_info)
@@ -44,22 +42,21 @@ class AgentMiddleware(object):
                         self.responses.append(response)
                         self.current_max_id += 1
                         response.close()
-                heapy_result = self.heapy.heap()
-                print("Start Time", "Difference")
-                time_diff = time.time() - start
-                print(start, time_diff)
 
+                heapy_result = self.heapy.heap()
+                time_diff = time.time() - start
                 str_count = 0
 
                 for index in range(0, len(heapy_result)):
                     if heapy_result[index].kind.arg is str:
                         str_count = heapy_result[index].count
                         break
-                print("NUMBER OF STRINGS: ", str_count)
+
                 self.total_str_count += str_count
                 self.responses[-1].strings_created = str_count
                 self.responses[-1].path_info = environ.get('PATH_INFO')
                 self.responses[-1].time = time_diff
+                self.responses[-1].heap_size = heapy_result.size
 
         except Exception as exception:
             raise exception
@@ -70,13 +67,20 @@ class AgentMiddleware(object):
         output += '<br/>'
         output += '<br/>'
 
-        output += '<table>\n<thead>\n<tr>\n<th>Id</th><th>Strings Created</th><th>Path</th><th>Time(seconds)</th>'
+        output += '<table><thead><tr>' \
+                  '<th>Id</th>' \
+                  '<th>Strings Created</th>' \
+                  '<th>Path</th>' \
+                  '<th>Time(seconds)</th>' \
+                  '<th>Memory(bytes)</th>' \
+                  '</thead></tr>'
         for resp in self.responses:
             output += '<tbody><tr>' + \
                       '<td>' + str(resp.agent_id) + '</td>' + \
                       '<td>' + str(resp.strings_created) + '</td>' + \
                       '<td>' + str(resp.path_info) + '</td>' + \
                       '<td>' + str(resp.time) + '</td>' + \
+                      '<td>' + str(resp.heap_size) + '</td>' + \
                       '</tbody></tr>'
         output += '</table'
 
