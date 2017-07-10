@@ -1,6 +1,12 @@
 import time
+import sys
+import ast
 from guppy import hpy
-
+import os
+import marshal
+import py_compile
+from string_transformer import StringTransformer
+from agent_string import AgentString
 
 class AgentMiddleware(object):
     responses = []
@@ -10,14 +16,39 @@ class AgentMiddleware(object):
         self.app = app
         self.current_max_id = 0
         self.heapy = hpy()
+        self.modules = sys.modules
+
+        for path, subdirs, files in os.walk(os.getcwd()):
+            for filename in files:
+                if filename.endswith(".py") and "env" not in path:
+                    full_filename = os.path.join(path, filename)
+                    with open(full_filename) as f:
+                        code_one = f.read()
+
+                    ast_tree = ast.parse(code_one)
+                    ast_tree = StringTransformer().visit(ast_tree)
+                    ast.fix_missing_locations(ast_tree)
+                    co = compile(ast_tree, "<ast>", "exec")
+
+                    with open(full_filename + 'c', 'wb') as fc:
+                        fc.write('\0\0\0\0')
+                        py_compile.wr_long(fc, long(time.time()))
+                        marshal.dump(co, fc)
+                        fc.flush()
+                        fc.seek(0, 0)
+                        fc.write(py_compile.MAGIC)
+
+
 
     def __call__(self, environ, start_response):
+
         response_interception = {}
-        
+
         def demo_start_response(status, headers, exc_info=None):
             print(headers)
             response_interception.update(status=status, response_headers=headers, exc_info=exc_info)
             return start_response(status, headers, exc_info)
+
 
         start = time.time()
         self.heapy.setrelheap()
@@ -37,6 +68,7 @@ class AgentMiddleware(object):
                 try:
                     for event in response:
                         yield event
+                        print("NUM MODULES", len(sys.modules))
                 finally:
                     if environ.get('PATH_INFO') != "/agent_statistics" and hasattr(response, 'close'):
                         response.agent_id = self.current_max_id
@@ -53,6 +85,8 @@ class AgentMiddleware(object):
                         str_count = heapy_result[index].count
                         break
 
+                print("STRINGS", AgentString.COUNT, str_count)
+
                 self.total_str_count += str_count
                 self.responses[-1].strings_created = str_count
                 self.responses[-1].path_info = environ.get('PATH_INFO')
@@ -64,6 +98,11 @@ class AgentMiddleware(object):
 
     def agent_statistics(self):
         output = 'Total Strings created: ' + str(self.total_str_count)
+
+        output += '<br/>'
+        output += '<br/>'
+
+        output += 'Total Modules: ' + str(len(self.modules))
 
         output += '<br/>'
         output += '<br/>'
@@ -82,6 +121,18 @@ class AgentMiddleware(object):
                       '<td>' + str(resp.path_info) + '</td>' + \
                       '<td>' + str(resp.time) + '</td>' + \
                       '<td>' + str(resp.heap_size) + '</td>' + \
+                      '</tbody></tr>'
+        output += '</table>'
+
+        output += '<br/>'
+        output += '<br/>'
+
+        output += '<table><thead><tr>' \
+                  '<th>Modules</th>' \
+                  '</thead></tr>'
+        for m in self.modules:
+            output += '<tbody><tr>' + \
+                      '<td>' + str(m) + '</td>' + \
                       '</tbody></tr>'
         output += '</table>'
 
