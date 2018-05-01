@@ -5,8 +5,23 @@ from guppy import hpy
 import os
 import marshal
 import py_compile
+import __builtin__
 from string_transformer import StringTransformer
 from agent_string import AgentString
+
+super_compile = __builtin__.compile
+
+
+def compile(source, filename, mode, flags=0):
+    if flags == ast.PyCF_ONLY_AST:
+        return super_compile(source, filename, mode, flags)
+    assert (mode == "exec")
+    code = open(filename).read()
+    tree = ast.parse(code)
+    tree = StringTransformer().visit(tree)
+    compiled_code = super_compile(tree, filename, "exec")
+    return compiled_code
+
 
 class AgentMiddleware(object):
     responses = []
@@ -17,6 +32,7 @@ class AgentMiddleware(object):
         self.current_max_id = 0
         self.heapy = hpy()
         self.modules = sys.modules
+
 
         for path, subdirs, files in os.walk(os.getcwd()):
             for filename in files:
